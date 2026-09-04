@@ -1,0 +1,212 @@
+<?php
+include 'schedule1.php';
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style6.css">
+
+    <title>Schedule</title>
+</head>
+<style>
+.ai {
+  font-family: 'Quicksand', sans-serif;
+  background-color: #4a2fa5;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  margin: 10px;
+}
+h3{
+  font-family: 'Playfair Display', serif;
+  color: #3b2a7d;
+  font-size: 20px;
+  margin: 10px;
+  white-space: nowrap;
+}
+</style>
+
+<body>
+
+<!-- HEADER -->
+<div class="header-row">
+    <h1>Student | My Schedule |</h1>
+    <a href="ind.php" class="enroll-link">Enroll to Lesson</a>
+</div>
+
+<!-- ===== DESKTOP TABLE ===== -->
+<table class="schedule-table">
+    <tr>
+        <th></th>
+        <?php foreach($days as $day): ?>
+            <th><?= $day ?></th>
+        <?php endforeach; ?>
+    </tr>
+
+    <?php foreach ($times as $time): ?>
+    <tr>
+        <td class="time"><?= $time ?></td>
+
+        <?php foreach ($days as $day): ?>
+        <td>
+            <?php if (isset($schedule[$day][$time])):
+                $lesson = $schedule[$day][$time];
+            ?>
+                <div class="lesson-card">
+                    <div class="lesson-time"><?= $time ?></div>
+                    <div class="lesson-subject"><?= $lesson['LessonName'] ?></div>
+                    <div class="lesson-teacher">
+                        <?= $lesson['TeacherName'] ?> | <?= $lesson['ClassroomName'] ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </td>
+        <?php endforeach; ?>
+    </tr>
+    <?php endforeach; ?>
+</table>
+
+<!-- ===== MOBILE VERSION ===== -->
+<div class="mobile-schedule">
+
+<?php foreach ($days as $day): ?>
+    <div class="day-block">
+        <div class="day-title"><?= $day ?></div>
+
+        <?php foreach ($times as $time): ?>
+            <?php if (isset($schedule[$day][$time])):
+                $lesson = $schedule[$day][$time];
+            ?>
+                <div class="lesson-item">
+                    <div class="lesson-item-time"><?= $time ?></div>
+
+                    <div class="lesson-item-info">
+                        <strong><?= $lesson['LessonName'] ?></strong>
+                        <?= $lesson['TeacherName'] ?> <br>
+                        Room: <?= $lesson['ClassroomName'] ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+        <?php endforeach; ?>
+
+    </div>
+<?php endforeach; ?>
+
+</div>
+
+<script>
+const currentUser = "<?= $_SESSION['StudentID'] ?>";
+</script>
+
+<div class="ai-study-box">
+  <h3>Smart Learning Assistant</h3>
+
+  <input type="text" id="topicInput" style = "width: 250px" placeholder="Enter a topic (e.g. Linear functions)">
+
+  <button class = "ai" onclick="generateStudy()">Generate Content</button>
+
+  <div id="aiResult"></div>
+
+  <button id="saveBtn" class = "ai" style="display:none;" onclick="saveNote()">Save</button>
+  <button class="ai" onclick="showNotes()">View Saved Notes</button>
+  <button class="ai" onclick="hideNotes()">Hide</button>
+
+<div id="notesContainer" class="notes-container"></div>
+</div>
+
+<script>
+function generateStudy() {
+    let topic = document.getElementById("topicInput").value;
+
+    fetch("ai_study.php", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ topic: topic })
+    })
+    .then(res => res.text())
+    .then(data => {
+        document.getElementById("aiResult").innerHTML = data;
+        document.getElementById("saveBtn").style.display = "inline-block";
+    });
+}
+function saveNote() {
+    let content = document.getElementById("aiResult").innerHTML;
+
+    let allNotes = JSON.parse(localStorage.getItem("notes") || "{}");
+
+    if (!allNotes[currentUser]) {
+        allNotes[currentUser] = [];
+    }
+
+    allNotes[currentUser].push(content);
+
+    localStorage.setItem("notes", JSON.stringify(allNotes));
+
+    alert("Saved!");
+}
+</script>
+
+<script>
+function showNotes() {
+    let allNotes = JSON.parse(localStorage.getItem("notes") || "{}");
+
+    let userNotes = allNotes[currentUser] || [];
+
+    let container = document.getElementById("notesContainer");
+    container.innerHTML = "";
+
+    userNotes.forEach((note, index) => {
+        let div = document.createElement("div");
+        div.className = "note-card";
+
+        div.innerHTML = `
+            <button class="delete-btn" onclick="deleteNote(${index})">Delete</button>
+            ${note}
+        `;
+
+        container.appendChild(div);
+    });
+}
+
+function deleteNote(index) {
+    let allNotes = JSON.parse(localStorage.getItem("notes") || "{}");
+
+    let userNotes = allNotes[currentUser] || [];
+
+    userNotes.splice(index, 1);
+
+    allNotes[currentUser] = userNotes;
+
+    localStorage.setItem("notes", JSON.stringify(allNotes));
+
+    showNotes();
+}
+function hideNotes() {
+    document.getElementById("notesContainer").innerHTML = "";
+}
+</script>
+
+
+
+
+<!-- FOOTER -->
+<div class="footer">
+    <a href="main.html">← Back to Main</a>
+    <script src="https://www.gstatic.com/dialogflow-console/fast/messenger/bootstrap.js?v=1"></script>
+<df-messenger
+intent="WELCOME"
+chat-title="EduCoreHelp"
+agent-id="77543f0d-f289-4ae0-aed1-b394c854cf54"
+language-code="ru"></df-messenger>
+</div>
+
+</body>
+</html>

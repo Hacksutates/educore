@@ -1,0 +1,568 @@
+/* ===== BASE ===== */
+
+body {
+    font-family: 'Quicksand', sans-serif;
+    background-color: #f8f8fb;
+    margin: 20px;
+    padding: 10px;
+
+}
+
+/* ===== HEADER ===== */
+.header-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+}
+
+h1 {
+    font-family: 'Playfair Display', serif;
+    color: #3b2a7d;
+    font-size: 28px;
+    margin: 0;
+    white-space: nowrap;
+}
+.enroll-link {
+   font-family: 'Playfair Display', serif;
+   font-size: 32px;
+   font-weight: 700;
+   color: #3b2a7d;
+   text-decoration: none;
+   margin-bottom: 3px;
+}
+
+
+
+/* ===== FILTERS (STUDENT PAGE) ===== */
+.filters {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.filters select {
+    width: 220px;
+}
+
+.filters input[type="submit"] {
+    width: auto;
+}
+
+/* ===== FILTERS (SUPERVISOR PAGE) ===== */
+.filters-attendance .filters-form {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+/* ===== INPUTS ===== */
+select,
+input[type="date"],
+input[type="search"],
+input[type="text"] {
+    font-family: 'Quicksand', sans-serif;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+input[type="submit"] {
+    font-family: 'Quicksand', sans-serif;
+    background-color: #4a2fa5;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+input[type="submit"]:hover {
+    background-color: #3b2389;
+}
+
+/* ===== TABLE ===== */
+table {
+    width: 90%;
+    border-collapse: collapse;
+    font-family: 'Quicksand', sans-serif;
+}
+table th {
+    background-color: #efeff5;
+    color: #3b2a7d;
+}
+table th, td {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+  }
+
+.schedule-table {
+    background: white;
+}
+
+.schedule-table th,
+.schedule-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+.schedule-table th {
+    background-color: #efeff5;
+    color: #3b2a7d;
+}
+
+.time {
+    background-color: #fafafa;
+    font-weight: bold;
+}
+
+/* ===== LESSON ===== */
+.lesson {
+    background-color: #4a2fa5;
+    color: white;
+    border-radius: 30px;
+    padding: 6px 20px;
+    display: inline-block;
+    font-size: 14px;
+}
+
+/* ===== LESSON CARD ===== */
+.lesson-card {
+    background-color: #4b2ca3;
+    color: white;
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    width: 120px;
+    font-family: 'Quicksand', sans-serif;
+
+}
+.schedule-table td {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.lesson-card {
+    margin: 0 auto;
+}
+
+.lesson-time {
+    font-weight: bold;
+}
+
+.lesson-subject {
+    margin-bottom: 4px;
+}
+
+.lesson-teacher {
+    font-size: 11px;
+    opacity: 0.9;
+}
+
+/* ===== INFO ===== */
+.selected {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.info p {
+    margin: 6px 0;
+    font-size: 15px;
+}
+
+.info span {
+    font-weight: bold;
+    color: #3b2a7d;
+}
+
+/* ===== LIST ===== */
+.schedule-list {
+    padding-left: 18px;
+    margin-top: 3px;
+}
+
+.schedule-list li {
+    margin-bottom: 4px;
+}
+
+/* ===== STATUS ===== */
+.success {
+    color: #2e8b57;
+    font-weight: 500;
+}
+
+.error {
+    color: #d64545;
+}
+
+.comment-box textarea {
+    font-family: 'Quicksand', sans-serif;
+    width: 100%;
+    min-height: 100px;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    resize: vertical; /* можно тянуть вниз */
+    line-height: 1.4;
+}
+
+
+.ai-study-box {
+  margin-top: 40px;
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+}
+
+.ai-study-box input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin: 10px 0;
+}
+
+.ai-study-box button {
+  background: #4a2fa5;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+#aiResult {
+  margin-top: 20px;
+}
+
+/* AI content styling */
+.ai-card {
+  background: #f8f8fb;
+  padding: 15px;
+  border-radius: 12px;
+}
+
+.ai-title {
+  font-weight: bold;
+  font-size: 18px;
+  color: #3b2a7d;
+}
+
+.ai-section {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.ai-visual {
+  background: #1e1e1e;
+  color: #00ffcc;
+  font-family: 'Quicksand', sans-serif;
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+.notes-container {
+  margin-top: 20px;
+}
+
+.note-card {
+  background: white;
+  border-radius: 12px;
+  padding: 15px;
+  margin-top: 15px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  position: relative;
+}
+
+/* кнопка удаления */
+.delete-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 12px;
+  font-family: 'Quicksand', sans-serif;
+  background-color: #4a2fa5;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin: 10px;
+}
+
+.delete-btn:hover {
+  background: #b93737;
+}
+
+.ai-visual table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.ai-visual th, .ai-visual td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.ai-visual th {
+  background: #ede9fe;
+  color: #3b2a7d;
+}
+
+/* шаги (flow) */
+.ai-step {
+  background: #ede9fe;
+  padding: 8px;
+  border-radius: 8px;
+  margin: 5px 0;
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ===== MOBILE VERSION ===== */
+.mobile-schedule {
+    display: none;
+}
+
+/* 📱 PHONE */
+@media (max-width: 768px) {
+
+  /* 📦 общий блок */
+  .ai-study-box {
+    padding: 15px;
+    border-radius: 12px;
+  }
+
+  /* 🔤 input */
+  .ai-study-box input {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  /* 🔘 кнопки */
+  .ai-study-box button {
+    width: 100%;
+    margin-bottom: 10px;
+    margin-right: 0;
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  /* 📊 результат */
+  #aiResult {
+    margin-top: 15px;
+  }
+
+  /* 📄 карточка */
+  .ai-card {
+    padding: 12px;
+  }
+
+  /* 🧠 заголовок */
+  .ai-title {
+    font-size: 16px;
+  }
+
+  /* 📖 текст */
+  .ai-section {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* 📊 визуал */
+  .ai-visual {
+    font-size: 12px;
+    padding: 8px;
+    overflow-x: auto; /* 🔥 важно для таблиц */
+  }
+
+  /* 📊 таблицы внутри */
+  .ai-visual table {
+    min-width: 400px; /* чтобы не ломалась */
+  }
+
+  .ai-visual th,
+  .ai-visual td {
+    font-size: 12px;
+    padding: 6px;
+  }
+
+  /* 🔄 шаги */
+  .ai-step {
+    font-size: 12px;
+    padding: 6px;
+  }
+
+  /* 🗂 сохранённые заметки */
+  .notes-container {
+    margin-top: 15px;
+  }
+
+  .note-card {
+    padding: 12px;
+  }
+
+  /* ❌ кнопка удаления */
+  .delete-btn {
+    position: static; /* 🔥 убираем абсолют */
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px;
+    font-size: 13px;
+  }
+
+  .container {
+      max-width: 1000px;
+      margin: 0 auto;
+
+  }
+
+    body {
+        padding: 10px;
+        overflow-x: hidden;
+    }
+
+    /* HEADER */
+    .header-row {
+        gap: 5px;
+    }
+
+    h1 {
+        font-size: 16px;
+    }
+
+    .enroll-link {
+        font-size: 16px;
+
+    }
+    .enroll-link {
+        font-family: 'Playfair Display', serif;
+        font-size: 16px;
+        font-weight: 700;
+        color: #3b2a7d;
+        text-decoration: none;
+        margin: 0;
+        white-space: nowrap;
+    }
+    .comment-box {
+        padding: 15px;
+    }
+
+    .comment-box textarea {
+        margin-top: 12px;
+        min-height: 120px;
+        font-size: 14px;
+    }
+
+    /* FILTERS */
+    .filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filters select {
+    flex: 1;
+}
+
+.filters input[type="submit"] {
+    flex: 1;
+}
+
+    .filters select,
+    .filters input[type="submit"] {
+        width: 100%;
+    }
+
+    .filters-attendance .filters-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filters-attendance select,
+    .filters-attendance input {
+        width: 100%;
+    }
+
+    /* TABLE → OFF */
+    .schedule-table {
+        display: none;
+    }
+
+    /* MOBILE SCHEDULE → ON */
+    .mobile-schedule {
+        display: block;
+    }
+
+    /* MOBILE CARDS */
+    .day-block {
+        margin-bottom: 25px;
+    }
+
+    .day-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #4a2fa5;
+        margin-bottom: 10px;
+    }
+
+    .lesson-item {
+        display: flex;
+        gap: 12px;
+        background: white;
+        padding: 12px;
+        border-radius: 12px;
+        margin-bottom: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+    }
+
+    .lesson-item-time {
+        font-weight: bold;
+        color: #4a2fa5;
+        min-width: 60px;
+    }
+
+    .lesson-item-info {
+        font-size: 14px;
+    }
+
+    .lesson-item-info strong {
+        display: block;
+    }
+
+    /* DASHBOARD STACK */
+    .dashboard {
+        flex-direction: column;
+    }
+
+    .side-panel {
+        width: 100%;
+    }
+
+    .table-scroll {
+        overflow-x: auto;
+    }
+}
+
+/* ===== FOOTER ===== */
+.footer {
+    margin-top: 30px;
+    font-size: 14px;
+}
+
+.footer a {
+    text-decoration: none;
+    color: #4a2fa5;
+}

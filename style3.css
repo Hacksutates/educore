@@ -1,0 +1,183 @@
+/* ===== BASE ===== */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Quicksand', sans-serif;
+    background: #f5f6fa;
+}
+
+/* ===== PAGE LAYOUT ===== */
+.page {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+}
+
+/* контейнер (ВАЖНО) */
+.container {
+    display: flex;
+    width: 100%;
+    max-width: 1100px;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+/* ===== LEFT BLOCK ===== */
+#block {
+    flex: 1;
+    padding: 40px;
+    background: #f8f8fb;
+}
+
+h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px;
+    line-height: 1.1;
+    margin: 0;
+}
+
+h2 {
+    color: #4a2fa5;
+    margin-bottom: 15px;
+}
+
+p {
+    color: #666;
+    font-size: 15px;
+}
+
+/* ===== CONTACTS ===== */
+.contacts {
+    margin-top: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.contact-card {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    align-items: center;
+    border-radius: 10px;
+    background: white;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+.text .value {
+    font-size: 14px;
+}
+
+.icon {
+    background: #ede9fe;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+/* ===== RIGHT BLOCK ===== */
+.form-box {
+    flex: 1;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* ===== FORM ===== */
+form {
+    width: 100%;
+}
+
+/* ===== INPUTS ===== */
+label {
+    margin-top: 12px;
+    font-size: 14px;
+}
+
+input[type="text"],
+input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+/* ===== BUTTONS ===== */
+.buttons {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+input[type="submit"],
+.btn {
+    font-family: Quicksand;
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background: #4a2fa5;
+    color: white;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+}
+
+.btn:hover {
+    background: #3b2389;
+}
+
+/* ===== ERROR ===== */
+.error {
+    color: #d64545;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+
+
+
+    .text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.label {
+    font-weight: 600;
+    color: #3b2a7d;
+}
+
+.value {
+    font-size: 14px;
+    color: #555;
+    word-break: break-all; /* чтобы email не вылазил */
+}
+
+    .container {
+        flex-direction: column;
+    }
+
+    #block {
+        text-align: center;
+        padding: 25px;
+    }
+
+    .form-box {
+        padding: 25px;
+    }
+
+    h1 {
+        font-size: 32px;
+    }
+}
