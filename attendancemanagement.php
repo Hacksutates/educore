@@ -206,7 +206,7 @@ th:nth-last-child(2) {
 function generateAIComment() {
     let studentsData = <?= json_encode($attendanceStats) ?>;
 
-  fetch('/www/ai_comment.php', {
+  fetch('ai_comment.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(studentsData)
@@ -230,6 +230,7 @@ function generateAIComment() {
 
 <div class="footer">
 <a href="main.html">← Back to Main</a>
+<a href="timetables.php">Generate Schedule</a>
 </div>
 </div>
 </body>

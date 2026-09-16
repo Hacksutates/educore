@@ -1,18 +1,157 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/p5.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/addons/p5.dom.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/addons/p5.sound.min.js"></script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Face Verification — EduCore</title>
 
-  <script src="https://unpkg.com/ml5@0.5.0/dist/ml5.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" type="text/css" href="style.css">
-  <meta charset="utf-8" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/p5.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/addons/p5.dom.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/addons/p5.sound.min.js"></script>
+<script src="https://unpkg.com/ml5@0.5.0/dist/ml5.min.js"></script>
+
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Quicksand', sans-serif;
+    background: #f5f6fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 460px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    padding: 40px;
+    text-align: center;
+  }
+
+  .eyebrow {
+    color: #4a2fa5;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 30px;
+    margin: 0 0 10px;
+    color: #1a1a1a;
+    line-height: 1.15;
+  }
+
+  .subtitle {
+    color: #666;
+    font-size: 14px;
+    margin: 0 0 22px;
+    line-height: 1.5;
+  }
+
+  .status-pill {
+    display: inline-block;
+    background: #ede9fe;
+    color: #4a2fa5;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 18px;
+    border-radius: 30px;
+    margin-bottom: 20px;
+  }
+
+  #camera-frame {
+    position: relative;
+    width: 340px;
+    height: 280px;
+    margin: 0 auto 18px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 8px 20px rgba(74, 47, 165, 0.25);
+    border: 4px solid #ede9fe;
+  }
+
+  #camera-frame canvas {
+    display: block;
+  }
+
+  .hint {
+    font-size: 13px;
+    color: #888;
+    margin: 0 0 25px;
+  }
+
+  .footer {
+    font-size: 14px;
+  }
+
+  .footer a {
+    text-decoration: none;
+    color: #4a2fa5;
+  }
+
+  .footer a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 480px) {
+    .auth-card { padding: 25px; }
+    #camera-frame { width: 100%; height: 240px; }
+    h1 { font-size: 24px; }
+  }
+</style>
 
 </head>
 
 <body>
+
+  <div class="auth-card">
+    <div class="eyebrow">EduCore</div>
+    <h1>Face Verification</h1>
+    <p class="subtitle">Look directly into the camera to confirm your identity and access the admin panel.</p>
+
+    <div class="status-pill">🔒 Scanning face...</div>
+
+    <div id="camera-frame"></div>
+
+    <p class="hint">Make sure your face is well lit and centered in the frame.</p>
+
+    <div class="footer">
+      <a href="main.html">← Back to Main</a>
+    </div>
+  </div>
+
   <script src="sketch.js"></script>
+  <script>
+    // sketch.js creates the p5 canvas as a plain <canvas> appended to <body>.
+    // We move it into our styled frame without touching sketch.js itself.
+    (function () {
+      var attempts = 0;
+      var interval = setInterval(function () {
+        var canvas = document.querySelector('canvas');
+        var frame = document.getElementById('camera-frame');
+        attempts++;
+
+        if (canvas && frame && canvas.parentElement !== frame) {
+          frame.appendChild(canvas);
+          clearInterval(interval);
+        }
+        if (attempts > 100) clearInterval(interval); // stop trying after ~10s
+      }, 100);
+    })();
+  </script>
+
 </body>
+</html>

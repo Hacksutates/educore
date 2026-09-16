@@ -50,7 +50,6 @@ for ($i = 0; $i < count($arr); $i++) {
       $_SESSION['old_fullname'] = $fullname;
       $_SESSION['old_login']    = $login;
       $_SESSION['old_password'] = $password;
-      $_SESSION['old_role']     = $role;
 
         header("Location: reg_form_sup.php");
         exit;
@@ -61,16 +60,18 @@ $query1 = mysqli_query(
     $connect,
     "INSERT INTO supervisors (supervisor_name, supervisor_login, supervisor_password)
      VALUES ('$fullname', '$login', '$password')"
+     
 );
-}
     if (!$query1) {
            die("Database error: " . mysqli_error($connect));
        }
-    if ($query1) {
-            $_SESSION['success'] = "Registration successful";
-            header("Location: attendancemanagement.php");
-            exit;
-        }
+
+$_SESSION['name'] = $login;
+$_SESSION['supervisor_id'] = mysqli_insert_id($connect);
+$_SESSION['success'] = "Registration successful";
+header("Location: attendancemanagement.php");
+exit;
+}
 
     }
       if (isset($_POST['signin'])) {
@@ -130,6 +131,7 @@ if (!$hasError) {
           $_SESSION['name'] = $login;
           $_SESSION['supervisor_id'] = $data['supervisor_id'];
           header("Location: attendancemanagement.php");
+          exit;
         }
        else {
       $_SESSION['autoError'] = "Wrong login or password";

@@ -1,40 +1,56 @@
 <?php
+/**
+ * Replaces the original schedule2.php.
+ * Same output contract as before ($days, $times, $schedule), so
+ * scheduleteacher.php needs no changes at all — it just includes this file.
+ *
+ * Pulls whichever timetable a supervisor has set as the teacher's ACTIVE
+ * schedule, filtered down to just the periods where this teacher is the
+ * one teaching — not the whole class's schedule.
+ */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 include 'connection.php';
 
-$teacherID = $_SESSION['TeacherID'];
+$teacherID = (int) $_SESSION['TeacherID'];
+
+$days     = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+$times    = [];
 $schedule = [];
-$days = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
-$times = ['14:15','15:00','15:45','16:30'];
 
-$querySchedule2 = mysqli_query($connect, "SELECT
-    extracurricular_lessons.LessonID,
-    extracurricular_lessons.LessonName,
-    teachers.TeacherName,
-    classrooms.ClassroomName,
-    lessonschedule.DayOfWeek,
-    lessonschedule.TimeStart
-FROM extracurricular_lessons
-JOIN teachers
-    ON extracurricular_lessons.TeacherID = teachers.TeacherID
-JOIN classrooms
-    ON extracurricular_lessons.ClassroomID = classrooms.ClassroomID
-JOIN lessonschedule
-    ON extracurricular_lessons.LessonID = lessonschedule.LessonID
-WHERE extracurricular_lessons.TeacherID = '$teacherID'
-ORDER BY lessonschedule.DayOfWeek, lessonschedule.TimeStart;");
+$activeID = null;
+$q = mysqli_query($connect, "
+    SELECT TimetableID FROM timetable_assignments
+    WHERE AssigneeType = 'teacher' AND AssigneeID = $teacherID
+    LIMIT 1
+");
+if ($row = mysqli_fetch_assoc($q)) {
+    $activeID = (int) $row['TimetableID'];
+}
 
-while ($row = mysqli_fetch_assoc($querySchedule2)) {
-
-    $day  = $row['DayOfWeek'];
-    $time = substr($row['TimeStart'], 0, 5);
-
-    $schedule[$day][$time] = [
-        'LessonName'   => $row['LessonName'],
-        'TeacherName'  => $row['TeacherName'],
-        'ClassroomName'=> $row['ClassroomName']
-    ];
+if ($activeID) {
+    $querySchedule2 = mysqli_query($connect, "
+        SELECT s.SubjectName, t.TeacherName, c.ClassroomName, ts.DayOfWeek, ts.TimeStart
+        FROM timetable_slots ts
+        JOIN subjects s   ON ts.SubjectID   = s.SubjectID
+        JOIN teachers t   ON ts.TeacherID   = t.TeacherID
+        JOIN classrooms c ON ts.ClassroomID = c.ClassroomID
+        WHERE ts.TimetableID = $activeID AND ts.TeacherID = $teacherID
+        ORDER BY ts.DayOfWeek, ts.TimeStart
+    ");
+    while ($row = mysqli_fetch_assoc($querySchedule2)) {
+        $day  = $row['DayOfWeek'];
+        $time = substr($row['TimeStart'], 0, 5);
+        if (!in_array($time, $times, true)) {
+            $times[] = $time;
+        }
+        $schedule[$day][$time] = [
+            'LessonName'    => $row['SubjectName'],
+            'TeacherName'   => $row['TeacherName'],
+            'ClassroomName' => $row['ClassroomName'],
+        ];
+    }
+    sort($times);
 }
 ?>

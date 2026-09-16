@@ -131,6 +131,20 @@ table th, td {
     font-size: 14px;
 }
 
+/* ===== LESSON CARD (clickable link wrapper) ===== */
+.lesson-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lesson-card-link:hover .lesson-card,
+.lesson-card-link:hover .lesson-item {
+    box-shadow: 0 4px 12px rgba(74, 47, 165, 0.35);
+    transform: translateY(-1px);
+}
+
 /* ===== LESSON CARD ===== */
 .lesson-card {
     background-color: #4b2ca3;

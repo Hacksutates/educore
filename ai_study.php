@@ -1,9 +1,10 @@
 <?php
 
+require 'openai_config.php'; // defines OPENAI_API_KEY — must NOT be committed to git
+
 $data = json_decode(file_get_contents("php://input"), true);
 $topic = $data['topic'];
 
-$apiKey = "k-proj-4abjBTbkkZzKsBBzXnqjITbATZrX8fG3GszyvzWMz02Ib2ve1PZfCvxttl2t6IXixbiw7n0OkjT3BlbkFJG5d_NYwZsCtz7zW_GJBTFVHTqzeMrdQDSK0rYcRkBkMPZn3SBYKCSQhWESSs_pCRCgc_h1rO4A";
 
 
 $prompt = "
@@ -50,7 +51,7 @@ curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
     "Content-Type: application/json",
-    "Authorization: Bearer $apiKey"
+    "Authorization: Bearer " . OPENAI_API_KEY
 ]);
 
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([

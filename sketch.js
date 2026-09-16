@@ -3,7 +3,7 @@
 // https://thecodingtrain.com/TeachableMachine/1-teachable-machine.html
 // https://editor.p5js.org/codingtrain/sketches/PoZXqbu4v
 // ===== SETTINGS =====
-let imageModelURL = 'https://teachablemachine.withgoogle.com/models/bXy2kDNi/';
+let imageModelURL = 'https://teachablemachine.withgoogle.com/models/KWZIqAIUP/';
 
 // ===== VARIABLES =====
 let classifier;
@@ -67,7 +67,7 @@ function gotResult(error, results) {
   if (!redirected) {
 
     // ✅ если это ты и уверенность высокая
-    if (predictedLabel === "Polina" && confidence > 0.95) {
+    if ((predictedLabel === "Polina" || predictedLabel === "Alimzhan") && confidence > 0.7) {
 
       confirmFrames++;
 
@@ -80,7 +80,7 @@ function gotResult(error, results) {
         }, 800);
       }
 
-    } else if (confidence > 0.95) {
+    } /*else if (confidence > 0.95) {
       // ❌ если кто-то другой
       redirected = true;
       label = "Access Denied";
@@ -88,7 +88,7 @@ function gotResult(error, results) {
       setTimeout(() => {
         window.location.href = "registration.php";
       }, 800);
-    } else {
+    } */else {
       // если неуверенно — сбрасываем
       confirmFrames = 0;
     }

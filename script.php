@@ -76,6 +76,10 @@ if (!$hasError) {
             die("Database error: " . mysqli_error($connect));
         }
 
+        $_SESSION['name'] = $login;
+        $_SESSION['StudentID'] = mysqli_insert_id($connect);
+        $_SESSION['role'] = 'student';
+
         $_SESSION['success'] = "Registration successful";
         header("Location: schedulestudent.php");
         exit;
@@ -91,6 +95,10 @@ if (!$hasError) {
         if (!$query2) {
             die("Database error: " . mysqli_error($connect));
         }
+
+        $_SESSION['name'] = $login;
+        $_SESSION['TeacherID'] = mysqli_insert_id($connect);
+        $_SESSION['role'] = 'teacher';
 
         $_SESSION['success'] = "Registration successful";
         header("Location: scheduleteacher.php");
