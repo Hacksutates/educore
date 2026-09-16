@@ -107,6 +107,14 @@ while ($row = mysqli_fetch_assoc($slotsResult)) {
   · <a href="timetable_assign.php?id=<?= $timetableID ?>">Assign this schedule →</a>
 </p>
 
+<div class="panel generate-cta">
+  <div>
+    <h2>Generate it automatically</h2>
+    <p class="muted">Fill the whole week in one click — free teachers and rooms are picked for you.</p>
+  </div>
+  <a class="big-btn-link" href="timetable_generate.php?id=<?= $timetableID ?>">Auto-generate →</a>
+</div>
+
 <?php if ($notice): ?><p class="notice"><?= htmlspecialchars($notice) ?></p><?php endif; ?>
 <?php if ($error): ?><p class="error"><?= htmlspecialchars($error) ?></p><?php endif; ?>
 

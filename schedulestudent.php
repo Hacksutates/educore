@@ -21,33 +21,42 @@ include 'schedule1.php';
     <a href="ind.php" class="enroll-link">Enroll to Lesson</a>
 </div>
 
+<?php if ($scheduleNotice): ?>
+    <p class="schedule-notice"><?= htmlspecialchars($scheduleNotice) ?></p>
+<?php endif; ?>
+
 <!-- ===== DESKTOP TABLE ===== -->
 <table class="schedule-table">
     <tr>
         <th></th>
-        <?php foreach($days as $day): ?>
+        <?php foreach ($days as $day): ?>
             <th><?= $day ?></th>
         <?php endforeach; ?>
     </tr>
 
     <?php foreach ($times as $time): ?>
     <tr>
-        <td class="time"><?= $time ?></td>
+        <td class="time"><?= htmlspecialchars($time) ?></td>
 
         <?php foreach ($days as $day): ?>
         <td>
             <?php if (isset($schedule[$day][$time])):
                 $lesson = $schedule[$day][$time];
+                $hasBrief = !empty($lesson['LessonID']);
             ?>
+                <?php if ($hasBrief): ?>
                 <a class="lesson-card-link" href="subject_brief.php?lesson_id=<?= urlencode($lesson['LessonID']) ?>">
+                <?php endif; ?>
                     <div class="lesson-card">
-                        <div class="lesson-time"><?= $time ?></div>
-                        <div class="lesson-subject"><?= $lesson['LessonName'] ?></div>
+                        <div class="lesson-time"><?= htmlspecialchars($time) ?></div>
+                        <div class="lesson-subject"><?= htmlspecialchars($lesson['LessonName']) ?></div>
                         <div class="lesson-teacher">
-                            <?= $lesson['TeacherName'] ?> | <?= $lesson['ClassroomName'] ?>
+                            <?= htmlspecialchars($lesson['TeacherName']) ?> | <?= htmlspecialchars($lesson['ClassroomName']) ?>
                         </div>
                     </div>
+                <?php if ($hasBrief): ?>
                 </a>
+                <?php endif; ?>
             <?php endif; ?>
         </td>
         <?php endforeach; ?>
@@ -62,23 +71,34 @@ include 'schedule1.php';
     <div class="day-block">
         <div class="day-title"><?= $day ?></div>
 
-        <?php foreach ($times as $time): ?>
-            <?php if (isset($schedule[$day][$time])):
-                $lesson = $schedule[$day][$time];
-            ?>
-                <a class="lesson-card-link" href="subject_brief.php?lesson_id=<?= urlencode($lesson['LessonID']) ?>">
-                    <div class="lesson-item">
-                        <div class="lesson-item-time"><?= $time ?></div>
+        <?php
+        $dayHasLessons = false;
+        foreach ($times as $time):
+            if (!isset($schedule[$day][$time])) continue;
+            $dayHasLessons = true;
+            $lesson   = $schedule[$day][$time];
+            $hasBrief = !empty($lesson['LessonID']);
+        ?>
+            <?php if ($hasBrief): ?>
+            <a class="lesson-card-link" href="subject_brief.php?lesson_id=<?= urlencode($lesson['LessonID']) ?>">
+            <?php endif; ?>
+                <div class="lesson-item">
+                    <div class="lesson-item-time"><?= htmlspecialchars($time) ?></div>
 
-                        <div class="lesson-item-info">
-                            <strong><?= $lesson['LessonName'] ?></strong>
-                            <?= $lesson['TeacherName'] ?> <br>
-                            Room: <?= $lesson['ClassroomName'] ?>
-                        </div>
+                    <div class="lesson-item-info">
+                        <strong><?= htmlspecialchars($lesson['LessonName']) ?></strong>
+                        <?= htmlspecialchars($lesson['TeacherName']) ?> <br>
+                        Room: <?= htmlspecialchars($lesson['ClassroomName']) ?>
                     </div>
-                </a>
+                </div>
+            <?php if ($hasBrief): ?>
+            </a>
             <?php endif; ?>
         <?php endforeach; ?>
+
+        <?php if (!$dayHasLessons): ?>
+            <p class="no-lessons">No classes.</p>
+        <?php endif; ?>
 
     </div>
 <?php endforeach; ?>

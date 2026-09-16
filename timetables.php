@@ -96,6 +96,7 @@ $list = mysqli_query($connect, "
       <td><?= date('d M Y, H:i', strtotime($row['UpdatedAt'])) ?></td>
       <td class="actions">
         <a href="timetable_builder.php?id=<?= (int) $row['TimetableID'] ?>">Edit</a>
+        <a href="timetable_generate.php?id=<?= (int) $row['TimetableID'] ?>">Generate</a>
         <a href="timetable_assign.php?id=<?= (int) $row['TimetableID'] ?>">Assign</a>
         <form method="POST" class="inline">
           <input type="hidden" name="action" value="toggle_status">

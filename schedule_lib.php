@@ -1,0 +1,138 @@
+<?php
+/**
+ * Shared read helpers for the student/teacher schedule pages.
+ * Kept separate so schedule1.php and schedule2.php stay short and
+ * behave identically.
+ */
+
+/** The school week. */
+function tt_days(): array
+{
+    return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+}
+
+/**
+ * Fallback period grid, used so the table still draws its rows when a
+ * person has nothing scheduled. Matches the generator's defaults.
+ */
+function tt_default_times(): array
+{
+    return ['08:30', '09:25', '10:20', '11:15', '12:10', '13:05'];
+}
+
+/**
+ * Run a query and return false instead of blowing up when something is
+ * wrong (missing table, bad column). PHP 8.1+ makes mysqli throw by
+ * default, so the try/catch matters as much as the @.
+ */
+function tt_query($connect, string $sql)
+{
+    try {
+        return @mysqli_query($connect, $sql);
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+/** Prepared-statement version of tt_query: returns false rather than throwing. */
+function tt_prepare($connect, string $sql)
+{
+    try {
+        return @mysqli_prepare($connect, $sql);
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+/** True when the schedule-generator tables have actually been created. */
+function tt_tables_ready($connect): bool
+{
+    static $ready = null;
+    if ($ready !== null) {
+        return $ready;
+    }
+
+    $ready = true;
+    foreach (['timetables', 'timetable_slots', 'timetable_assignments', 'subjects'] as $table) {
+        $res = tt_query($connect, "SHOW TABLES LIKE '$table'");
+        if (!$res || mysqli_num_rows($res) === 0) {
+            $ready = false;
+            break;
+        }
+    }
+    return $ready;
+}
+
+/**
+ * Timetable IDs assigned to a person. Returns every match rather than just
+ * one, so a database left with duplicate assignment rows still works.
+ */
+function tt_active_timetable_ids($connect, string $type, int $assigneeID): array
+{
+    $type = ($type === 'teacher') ? 'teacher' : 'student';
+    $ids  = [];
+
+    $res = tt_query($connect, "
+        SELECT TimetableID FROM timetable_assignments
+        WHERE AssigneeType = '$type' AND AssigneeID = $assigneeID
+        ORDER BY AssignmentID DESC
+    ");
+    if ($res) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $ids[] = (int) $row['TimetableID'];
+        }
+    }
+    return $ids;
+}
+
+/**
+ * All classes on the given timetables, optionally narrowed to one teacher.
+ * Uses LEFT JOINs so a slot still shows up if its teacher or room row was
+ * deleted — previously one missing row silently removed the whole class.
+ */
+function tt_fetch_slots($connect, array $timetableIDs, ?int $teacherID = null): array
+{
+    $timetableIDs = array_filter(array_map('intval', $timetableIDs));
+    if (!$timetableIDs) {
+        return [];
+    }
+
+    $idList = implode(',', $timetableIDs);
+    $where  = "ts.TimetableID IN ($idList)";
+    if ($teacherID !== null) {
+        $where .= " AND ts.TeacherID = " . (int) $teacherID;
+    }
+
+    $res = tt_query($connect, "
+        SELECT ts.SlotID, ts.DayOfWeek, ts.TimeStart, ts.TimeEnd,
+               COALESCE(s.SubjectName, 'Class')     AS SubjectName,
+               COALESCE(t.TeacherName, 'TBA')       AS TeacherName,
+               COALESCE(c.ClassroomName, 'TBA')     AS ClassroomName
+        FROM timetable_slots ts
+        LEFT JOIN subjects   s ON ts.SubjectID   = s.SubjectID
+        LEFT JOIN teachers   t ON ts.TeacherID   = t.TeacherID
+        LEFT JOIN classrooms c ON ts.ClassroomID = c.ClassroomID
+        WHERE $where
+        ORDER BY FIELD(ts.DayOfWeek,'Monday','Tuesday','Wednesday','Thursday','Friday'),
+                 ts.TimeStart
+    ");
+
+    $rows = [];
+    if ($res) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $rows[] = $row;
+        }
+    }
+    return $rows;
+}
+
+/** Sorted, de-duplicated period list — never empty, so rows always render. */
+function tt_normalise_times(array $times): array
+{
+    $times = array_values(array_unique(array_filter($times)));
+    if (!$times) {
+        return tt_default_times();
+    }
+    sort($times, SORT_STRING);
+    return $times;
+}

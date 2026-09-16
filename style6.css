@@ -580,3 +580,25 @@ table th, td {
     text-decoration: none;
     color: #4a2fa5;
 }
+
+/* ===== SCHEDULE EMPTY / NOTICE STATES ===== */
+.schedule-notice {
+    max-width: 900px;
+    margin: 0 auto 18px;
+    padding: 12px 16px;
+    background: #f3f0ff;
+    border: 1px solid #d6cdf5;
+    border-left: 4px solid #4b2ca3;
+    border-radius: 8px;
+    color: #3b2a7d;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 14px;
+    text-align: center;
+}
+
+.no-lessons {
+    color: #9a96ad;
+    font-size: 13px;
+    font-style: italic;
+    margin: 4px 0 0;
+}

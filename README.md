@@ -84,3 +84,91 @@ differ, these are the only two places to adjust:
 - **Bulk-assign a whole grade at once** — if students have a `GradeLevel` or
   `ClassGroup` column, add a "select by class" shortcut above the checkbox
   list in `timetable_assign.php`.
+
+---
+
+# What changed in this update
+
+## 1. Fixed: student and teacher schedules showed no rows
+
+The grid is drawn by looping over `$times`, and `$times` was built purely from
+the rows the query returned. So whenever the query returned nothing, `$times`
+was an empty array and the page rendered the header row and stopped — a table
+with no rows, and no explanation.
+
+Four things caused the query to come back empty:
+
+| Cause | Fix |
+|---|---|
+| The `sql/` migration was never in the package, so `timetables`, `timetable_slots`, `timetable_assignments` and `subjects` did not exist. Every query failed silently. | `sql/01_schedule_generator.sql` is now included. Run it once. |
+| No timetable assigned to that person yet. | The page now says so instead of showing a blank grid. |
+| A teacher was put on a class but never *assigned* a timetable. | `schedule2.php` now also picks up any **published** timetable that lists them as the teacher. |
+| A slot whose teacher or room row had been deleted was dropped by the `JOIN`. | Queries use `LEFT JOIN` with `TBA` fallbacks, so the class still appears. |
+
+The grid now always renders its rows (falling back to the default period times
+when empty), and any problem is explained in a message above the table.
+
+Also fixed: the student view linked every class to
+`subject_brief.php?lesson_id=` with an empty id, because timetable classes have
+no `LessonID`. Cards are only wrapped in a link when there is something to link
+to. Output is escaped with `htmlspecialchars` throughout.
+
+## 2. New: one-click automatic generation
+
+`timetable_generate.php` — reachable from the builder ("Auto-generate") and from
+the *Generate* action on the schedules list.
+
+Press **Generate schedule** and it fills the entire week. No configuration is
+required; the defaults are 5 days, 6 periods a day, 45-minute lessons from
+08:30 with 10-minute breaks, and every subject in the database spread evenly
+across the week.
+
+The engine (`timetable_engine.php`) respects:
+
+- one class per period on the timetable
+- no teacher in two rooms at the same time — **checked across every timetable**,
+  not just the one being generated
+- no room used by two classes at the same time, same global check
+- a subject is not repeated within a day unless the week is too tight to avoid it
+- an optional home room, so the class stays put where possible
+
+It works by randomised greedy placement with restarts: each attempt shuffles the
+order lessons and periods are tried, hardest subjects (fewest eligible teachers)
+go first, and the best of 60 attempts is kept. A normal school week solves in
+well under a second. If something genuinely cannot fit — a pinned teacher who is
+already booked solid — it places everything else and tells you exactly how many
+classes it could not place and why.
+
+Optional settings sit behind a collapsed *Settings* panel: periods per day,
+start time, lesson length, break length, which days to use, lessons-per-week per
+subject, and a specific teacher per subject ("Any teacher" by default).
+
+## 3. New: install guard
+
+Supervisor pages used to die with a raw SQL error when the tables were missing.
+They now show a short page telling you which migration to run.
+
+## Files added
+
+- `sql/01_schedule_generator.sql` — the missing migration
+- `sql/02_repair_existing.sql` — only if you created the tables by hand; removes
+  duplicate assignments and adds the unique keys the app relies on
+- `schedule_lib.php` — shared, error-tolerant read helpers
+- `timetable_engine.php` — the generation algorithm
+- `timetable_generate.php` — the generator page
+
+## Files changed
+
+`schedule1.php`, `schedule2.php`, `schedulestudent.php`, `scheduleteacher.php`,
+`timetable_common.php`, `timetable_builder.php`, `timetables.php`,
+`style6.css`, `style_timetable.css`
+
+## To get running
+
+1. `mysql -u student1 -p automated_system < sql/01_schedule_generator.sql`
+2. Make sure `classrooms` and `teachers` have rows (the migration seeds
+   `subjects` for you).
+3. Log in as supervisor → **Schedules** → create one → **Auto-generate** →
+   *Generate schedule*.
+4. **Assign** it to students and teachers, and **Publish** it.
+5. Open a student or teacher account — the grid is filled in.
