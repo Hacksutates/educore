@@ -12,6 +12,16 @@ $payload = json_encode([
     "display_name" => $_SESSION['name'],
 ]);
 
+// Release the session file lock before making the slow outbound request
+// below. PHP's default (file-based) session handler lets only one script
+// per session ID hold the lock at a time, and every other page here calls
+// session_start() too — so as long as this script keeps the session open,
+// any other tab/page hits a wall in session_start() and just sits there
+// until this request finishes (or the 30s curl timeout hits), even if the
+// chat window that triggered it was already closed. We're done reading
+// $_SESSION at this point, so it's safe to close it early.
+session_write_close();
+
 $ch = curl_init("https://weteach.onrender.com/sso/exchange"); // <-- put your real Render backend URL here
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);

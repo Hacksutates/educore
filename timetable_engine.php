@@ -94,13 +94,22 @@ function ttg_build_lesson_list(array $demand): array
  */
 function ttg_attempt(array $lessons, array $days, array $periods, array $rooms, array $busy, bool $preferOneRoom, bool $spreadSubjects): array
 {
+    // Real school timetables fill each day front-to-back — period 1, then
+    // period 2, and so on — rather than scattering classes at random times
+    // with free periods left in between. Shuffling the DAY order still
+    // gives every attempt a different layout, but periods within a day are
+    // always tried in chronological order, so a lesson only ever lands on
+    // a later period once every earlier one that day is taken (or
+    // unusable). Any gaps that still happen — because a teacher or room
+    // was only free later — get squeezed out afterwards by ttg_compact().
     $cells = [];
-    foreach ($days as $day) {
+    $shuffledDays = $days;
+    shuffle($shuffledDays);
+    foreach ($shuffledDays as $day) {
         foreach ($periods as $period) {
             $cells[] = ['day' => $day, 'start' => $period['start'], 'end' => $period['end']];
         }
     }
-    shuffle($cells);
 
     $teacherBusy = $busy['teachers'];
     $roomBusy    = $busy['rooms'];
@@ -185,6 +194,88 @@ function ttg_attempt(array $lessons, array $days, array $periods, array $rooms, 
 }
 
 /**
+ * Push classes earlier within each day to close up empty periods sitting
+ * between two classes — the same "no free period sandwiched in the middle
+ * of the day" rule real school timetables follow. A class only moves into
+ * an earlier gap when the teacher and room are actually free at that
+ * moment (checked against every OTHER timetable's bookings); a gap caused
+ * by a genuine conflict is left alone rather than forced.
+ */
+function ttg_compact(array $placed, array $days, array $periods, array $busy): array
+{
+    if (!$placed || !$periods) {
+        return $placed;
+    }
+
+    $periodIndex = [];
+    foreach ($periods as $i => $period) {
+        $periodIndex[$period['start']] = $i;
+    }
+
+    $teacherBusy = $busy['teachers'];
+    $roomBusy    = $busy['rooms'];
+
+    // This timetable's own placements, per day, keyed by period index.
+    $byDay = [];
+    foreach ($placed as $idx => $slot) {
+        $pIdx = $periodIndex[$slot['time_start']] ?? 0;
+        $byDay[$slot['day']][$pIdx] = $idx;
+    }
+
+    $periodCount = count($periods);
+
+    foreach ($days as $day) {
+        if (empty($byDay[$day])) {
+            continue;
+        }
+
+        for ($gap = 0; $gap < $periodCount; $gap++) {
+            if (isset($byDay[$day][$gap])) {
+                continue;   // already occupied — not a gap
+            }
+
+            // The nearest occupied period after this gap, on this day.
+            $next = null;
+            foreach ($byDay[$day] as $pIdx => $slotIdx) {
+                if ($pIdx > $gap && ($next === null || $pIdx < $next)) {
+                    $next = $pIdx;
+                }
+            }
+            if ($next === null) {
+                break;   // nothing later today — the rest of the day is legitimately free
+            }
+
+            $slotIdx   = $byDay[$day][$next];
+            $slot      = $placed[$slotIdx];
+            $gapPeriod = $periods[$gap];
+            $newKey    = $day . '|' . $gapPeriod['start'];
+
+            $teacherFree = empty($teacherBusy[$slot['teacher_id']][$newKey]);
+            $roomFree    = empty($roomBusy[$slot['classroom_id']][$newKey]);
+
+            if ($teacherFree && $roomFree) {
+                $oldKey = $day . '|' . $slot['time_start'];
+                unset($teacherBusy[$slot['teacher_id']][$oldKey]);
+                unset($roomBusy[$slot['classroom_id']][$oldKey]);
+
+                $placed[$slotIdx]['time_start'] = $gapPeriod['start'];
+                $placed[$slotIdx]['time_end']   = $gapPeriod['end'];
+
+                $teacherBusy[$slot['teacher_id']][$newKey] = true;
+                $roomBusy[$slot['classroom_id']][$newKey]  = true;
+
+                unset($byDay[$day][$next]);
+                $byDay[$day][$gap] = $slotIdx;
+            }
+            // Otherwise the teacher or room is genuinely busy elsewhere at
+            // that moment — leave the gap rather than double-book them.
+        }
+    }
+
+    return $placed;
+}
+
+/**
  * Run several attempts and keep the best one.
  * Later attempts drop the "spread subjects across days" rule so a tight
  * grid still gets filled rather than left half-empty.
@@ -216,7 +307,7 @@ function ttg_generate(array $demand, array $days, array $periods, array $rooms, 
         }
         if (!$result['unplaced']) {
             return [
-                'placed'   => $result['placed'],
+                'placed'   => ttg_compact($result['placed'], $days, $periods, $busy),
                 'unplaced' => 0,
                 'relaxed'  => !$spread,
             ];
@@ -224,7 +315,7 @@ function ttg_generate(array $demand, array $days, array $periods, array $rooms, 
     }
 
     return [
-        'placed'   => $best['placed'],
+        'placed'   => ttg_compact($best['placed'], $days, $periods, $busy),
         'unplaced' => count($best['unplaced']),
         'relaxed'  => $bestRelaxed,
     ];

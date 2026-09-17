@@ -11,6 +11,7 @@ $studentID = $_SESSION['StudentID'];
 $days      = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
 
 $lessonId  = isset($_GET['lesson_id']) ? $_GET['lesson_id'] : null;
+$slotId    = isset($_GET['slot_id']) ? $_GET['slot_id'] : null;
 $lessonInfo = null;
 $scheduleList = [];
 
@@ -43,6 +44,7 @@ if ($lessonId !== null && $lessonId !== '') {
         if ($lessonInfo === null) {
             $lessonInfo = [
                 'LessonID'      => $row['LessonID'],
+                'SlotID'        => null,
                 'LessonName'    => $row['LessonName'],
                 'TeacherName'   => $row['TeacherName'],
                 'ClassroomName' => $row['ClassroomName'],
@@ -52,6 +54,60 @@ if ($lessonId !== null && $lessonId !== '') {
             'day'  => $row['DayOfWeek'],
             'time' => substr($row['TimeStart'], 0, 5),
         ];
+    }
+
+} elseif ($slotId !== null && $slotId !== '') {
+
+    $slotId = mysqli_real_escape_string($connect, $slotId);
+
+    // Only show the brief if the requested slot belongs to a timetable that
+    // is actually assigned to the logged-in student — a standard (non-
+    // elective) class has no `enrollments` row to check against instead.
+    $baseQuery = mysqli_query($connect, "SELECT
+        ts.SubjectID,
+        ts.TimetableID,
+        COALESCE(s.SubjectName, 'Class') AS SubjectName
+    FROM timetable_slots ts
+    JOIN timetable_assignments ta
+        ON ta.TimetableID = ts.TimetableID
+       AND ta.AssigneeType = 'student'
+       AND ta.AssigneeID = '$studentID'
+    LEFT JOIN subjects s ON ts.SubjectID = s.SubjectID
+    WHERE ts.SlotID = '$slotId';");
+
+    $base = $baseQuery ? mysqli_fetch_assoc($baseQuery) : null;
+
+    if ($base) {
+        // Show every period of this subject on the student's timetable
+        // this week, the same way an elective's weekly schedule is shown.
+        $query = mysqli_query($connect, "SELECT
+            ts.SlotID,
+            ts.DayOfWeek,
+            ts.TimeStart,
+            COALESCE(t.TeacherName, 'TBA')   AS TeacherName,
+            COALESCE(c.ClassroomName, 'TBA') AS ClassroomName
+        FROM timetable_slots ts
+        LEFT JOIN teachers   t ON ts.TeacherID   = t.TeacherID
+        LEFT JOIN classrooms c ON ts.ClassroomID = c.ClassroomID
+        WHERE ts.TimetableID = '{$base['TimetableID']}'
+          AND ts.SubjectID   = '{$base['SubjectID']}'
+        ORDER BY FIELD(ts.DayOfWeek,'Monday','Tuesday','Wednesday','Thursday','Friday'), ts.TimeStart;");
+
+        while ($row = mysqli_fetch_assoc($query)) {
+            if ($lessonInfo === null) {
+                $lessonInfo = [
+                    'LessonID'      => null,   // a standard class has no extracurricular-lesson id
+                    'SlotID'        => $slotId,
+                    'LessonName'    => $base['SubjectName'],
+                    'TeacherName'   => $row['TeacherName'],
+                    'ClassroomName' => $row['ClassroomName'],
+                ];
+            }
+            $scheduleList[] = [
+                'day'  => $row['DayOfWeek'],
+                'time' => substr($row['TimeStart'], 0, 5),
+            ];
+        }
     }
 }
 ?>
@@ -121,7 +177,7 @@ h3 {
 
     <script>
     const currentUser   = "<?= $_SESSION['StudentID'] ?>";
-    const currentLesson = "<?= $lessonInfo['LessonID'] ?>";
+    const currentLesson = "<?= $lessonInfo['LessonID'] ?? ('slot_' . $lessonInfo['SlotID']) ?>";
     const notesKey      = "notes_lesson_" + currentLesson;
     </script>
 

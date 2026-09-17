@@ -62,10 +62,16 @@ h3{
         <td>
             <?php if (isset($schedule[$day][$time])):
                 $lesson = $schedule[$day][$time];
-                $hasBrief = !empty($lesson['LessonID']);
+                // Electives carry a LessonID (they link via lesson_id);
+                // standard timetable classes carry a SlotID instead — both
+                // now open the same subject_brief view.
+                $hasBrief = !empty($lesson['LessonID']) || !empty($lesson['SlotID']);
+                $briefHref = !empty($lesson['LessonID'])
+                    ? 'subject_brief.php?lesson_id=' . urlencode($lesson['LessonID'])
+                    : 'subject_brief.php?slot_id=' . urlencode($lesson['SlotID'] ?? '');
             ?>
                 <?php if ($hasBrief): ?>
-                <a class="lesson-card-link" href="subject_brief.php?lesson_id=<?= urlencode($lesson['LessonID']) ?>">
+                <a class="lesson-card-link" href="<?= $briefHref ?>">
                 <?php endif; ?>
                     <div class="lesson-card">
                         <div class="lesson-time"><?= htmlspecialchars($time) ?></div>
@@ -97,10 +103,13 @@ h3{
             if (!isset($schedule[$day][$time])) continue;
             $dayHasLessons = true;
             $lesson   = $schedule[$day][$time];
-            $hasBrief = !empty($lesson['LessonID']);
+            $hasBrief = !empty($lesson['LessonID']) || !empty($lesson['SlotID']);
+            $briefHref = !empty($lesson['LessonID'])
+                ? 'subject_brief.php?lesson_id=' . urlencode($lesson['LessonID'])
+                : 'subject_brief.php?slot_id=' . urlencode($lesson['SlotID'] ?? '');
         ?>
             <?php if ($hasBrief): ?>
-            <a class="lesson-card-link" href="subject_brief.php?lesson_id=<?= urlencode($lesson['LessonID']) ?>">
+            <a class="lesson-card-link" href="<?= $briefHref ?>">
             <?php endif; ?>
                 <div class="lesson-item">
                     <div class="lesson-item-time"><?= htmlspecialchars($time) ?></div>
