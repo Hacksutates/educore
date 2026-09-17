@@ -136,3 +136,75 @@ function tt_normalise_times(array $times): array
     sort($times, SORT_STRING);
     return $times;
 }
+
+/**
+ * Extracurricular lessons a student is enrolled in (clubs, electives —
+ * the `enrollments` / `extracurricular_lessons` tables), in the same shape
+ * the timetable rows use, plus a real LessonID so the card can link to
+ * subject_brief.php.
+ */
+function tt_fetch_enrolled_lessons($connect, int $studentID): array
+{
+    $res = tt_query($connect, "
+        SELECT
+            extracurricular_lessons.LessonID,
+            extracurricular_lessons.LessonName,
+            teachers.TeacherName,
+            classrooms.ClassroomName,
+            lessonschedule.DayOfWeek,
+            lessonschedule.TimeStart
+        FROM enrollments
+        JOIN extracurricular_lessons
+            ON enrollments.LessonID = extracurricular_lessons.LessonID
+        JOIN teachers
+            ON extracurricular_lessons.TeacherID = teachers.TeacherID
+        JOIN classrooms
+            ON extracurricular_lessons.ClassroomID = classrooms.ClassroomID
+        JOIN lessonschedule
+            ON extracurricular_lessons.LessonID = lessonschedule.LessonID
+        WHERE enrollments.StudentID = " . (int) $studentID . "
+        ORDER BY lessonschedule.DayOfWeek, lessonschedule.TimeStart
+    ");
+
+    $rows = [];
+    if ($res) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $rows[] = $row;
+        }
+    }
+    return $rows;
+}
+
+/**
+ * Extracurricular lessons a teacher personally teaches (clubs, electives),
+ * in the same shape the timetable rows use.
+ */
+function tt_fetch_teacher_lessons($connect, int $teacherID): array
+{
+    $res = tt_query($connect, "
+        SELECT
+            extracurricular_lessons.LessonID,
+            extracurricular_lessons.LessonName,
+            teachers.TeacherName,
+            classrooms.ClassroomName,
+            lessonschedule.DayOfWeek,
+            lessonschedule.TimeStart
+        FROM extracurricular_lessons
+        JOIN teachers
+            ON extracurricular_lessons.TeacherID = teachers.TeacherID
+        JOIN classrooms
+            ON extracurricular_lessons.ClassroomID = classrooms.ClassroomID
+        JOIN lessonschedule
+            ON extracurricular_lessons.LessonID = lessonschedule.LessonID
+        WHERE extracurricular_lessons.TeacherID = " . (int) $teacherID . "
+        ORDER BY lessonschedule.DayOfWeek, lessonschedule.TimeStart
+    ");
+
+    $rows = [];
+    if ($res) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $rows[] = $row;
+        }
+    }
+    return $rows;
+}
