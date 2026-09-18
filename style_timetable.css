@@ -152,6 +152,7 @@ button:hover, input[type="submit"]:hover { background: #3a48b8; }
 }
 .badge-draft     { background: #eee; color: #666; }
 .badge-published { background: #e4f7ea; color: #226b3f; }
+.badge-mismatch  { background: #fdeaea; color: #a3312f; margin-left: 6px; font-size: 11px; }
 
 .filter-box { width: 100%; margin-bottom: 10px; }
 
@@ -202,6 +203,12 @@ button:hover, input[type="submit"]:hover { background: #3a48b8; }
     cursor: pointer;
     text-decoration: none;
     transition: background 0.15s ease, transform 0.15s ease;
+}
+.big-btn-link:link,
+.big-btn-link:visited,
+.big-btn-link:hover,
+.big-btn-link:active {
+  color: #fff; /* Укажите нужный вам цвет, например, черный */
 }
 
 .big-btn:hover,

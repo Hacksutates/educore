@@ -60,6 +60,7 @@ if (!$query) {
 
     <input type="month" name="month" value="<?= $month ?>">
     <input type="submit" value="Load">
+    <a href="timetables.php">Generate Schedule</a>
 </form>
 
 <br>

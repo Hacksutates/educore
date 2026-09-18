@@ -23,10 +23,31 @@ if ($action === 'add_slot') {
     $teacherID = (int) ($_POST['teacher_id'] ?? 0);
     $roomID    = (int) ($_POST['classroom_id'] ?? 0);
 
+    $subjectMismatch = null;
+    if ($subjectID && $teacherID) {
+        $teacherSubjectMap = tt_teacher_subject_map($connect);
+        if (isset($teacherSubjectMap[$teacherID]) && $teacherSubjectMap[$teacherID] !== $subjectID) {
+            $stmt = mysqli_prepare($connect, "SELECT TeacherName FROM teachers WHERE TeacherID = ?");
+            mysqli_stmt_bind_param($stmt, 'i', $teacherID);
+            mysqli_stmt_execute($stmt);
+            $teacherRow = mysqli_stmt_get_result($stmt)->fetch_assoc();
+
+            $stmt = mysqli_prepare($connect, "SELECT SubjectName FROM subjects WHERE SubjectID = ?");
+            mysqli_stmt_bind_param($stmt, 'i', $teacherSubjectMap[$teacherID]);
+            mysqli_stmt_execute($stmt);
+            $subjectRow = mysqli_stmt_get_result($stmt)->fetch_assoc();
+
+            $subjectMismatch = ($teacherRow['TeacherName'] ?? 'That teacher') . ' teaches '
+                . ($subjectRow['SubjectName'] ?? 'a different subject') . ', not this subject.';
+        }
+    }
+
     if (!in_array($day, $days, true) || !$start || !$end || !$subjectID || !$teacherID || !$roomID) {
         flash('ttError', 'Please fill in every field to add a class.');
     } elseif ($start >= $end) {
         flash('ttError', 'The end time must be after the start time.');
+    } elseif ($subjectMismatch) {
+        flash('ttError', $subjectMismatch);
     } else {
         $stmt = mysqli_prepare($connect, "
             INSERT INTO timetable_slots (TimetableID, SubjectID, TeacherID, ClassroomID, DayOfWeek, TimeStart, TimeEnd)
@@ -71,10 +92,15 @@ $error  = takeFlash('ttError');
 $subjects   = mysqli_query($connect, "SELECT SubjectID, SubjectName FROM subjects ORDER BY SubjectName");
 $teachers   = mysqli_query($connect, "SELECT TeacherID, TeacherName FROM teachers ORDER BY TeacherName");
 $classrooms = mysqli_query($connect, "SELECT ClassroomID, ClassroomName FROM classrooms ORDER BY ClassroomName");
+$teacherSubjectMap    = tt_teacher_subject_map($connect);
+$teacherSubjectColumn = tt_has_teacher_subject_column($connect);
 
+$mismatchSelect = $teacherSubjectColumn
+    ? "(t.SubjectID IS NOT NULL AND t.SubjectID <> ts.SubjectID) AS Mismatch"
+    : "0 AS Mismatch";
 $slotsResult = mysqli_query($connect, "
     SELECT ts.SlotID, ts.DayOfWeek, ts.TimeStart, ts.TimeEnd,
-           s.SubjectName, t.TeacherName, c.ClassroomName
+           s.SubjectName, t.TeacherName, c.ClassroomName, $mismatchSelect
     FROM timetable_slots ts
     JOIN subjects s ON ts.SubjectID = s.SubjectID
     JOIN teachers t ON ts.TeacherID = t.TeacherID
@@ -141,7 +167,7 @@ while ($row = mysqli_fetch_assoc($slotsResult)) {
     <label>Start <input type="time" name="time_start" required></label>
     <label>End <input type="time" name="time_end" required></label>
     <label>Subject
-      <select name="subject_id" required>
+      <select name="subject_id" id="subject-select" required>
         <option value="">Select…</option>
         <?php while ($s = mysqli_fetch_assoc($subjects)): ?>
           <option value="<?= $s['SubjectID'] ?>"><?= htmlspecialchars($s['SubjectName']) ?></option>
@@ -149,12 +175,19 @@ while ($row = mysqli_fetch_assoc($slotsResult)) {
       </select>
     </label>
     <label>Teacher
-      <select name="teacher_id" required>
+      <select name="teacher_id" id="teacher-select" required>
         <option value="">Select…</option>
-        <?php while ($t = mysqli_fetch_assoc($teachers)): ?>
-          <option value="<?= $t['TeacherID'] ?>"><?= htmlspecialchars($t['TeacherName']) ?></option>
+        <?php
+        mysqli_data_seek($teachers, 0);
+        while ($t = mysqli_fetch_assoc($teachers)):
+          $tSubject = $teacherSubjectMap[(int) $t['TeacherID']] ?? '';
+        ?>
+          <option value="<?= $t['TeacherID'] ?>" data-subject="<?= $tSubject ?>"><?= htmlspecialchars($t['TeacherName']) ?></option>
         <?php endwhile; ?>
       </select>
+      <?php if ($teacherSubjectColumn): ?>
+        <span class="muted small">Narrows to teachers of the chosen subject.</span>
+      <?php endif; ?>
     </label>
     <label>Room
       <select name="classroom_id" required>
@@ -181,7 +214,12 @@ while ($row = mysqli_fetch_assoc($slotsResult)) {
       <tr>
         <td><?= substr($slot['TimeStart'], 0, 5) ?>–<?= substr($slot['TimeEnd'], 0, 5) ?></td>
         <td><?= htmlspecialchars($slot['SubjectName']) ?></td>
-        <td><?= htmlspecialchars($slot['TeacherName']) ?></td>
+        <td>
+          <?= htmlspecialchars($slot['TeacherName']) ?>
+          <?php if (!empty($slot['Mismatch'])): ?>
+            <span class="badge badge-mismatch" title="This teacher's assigned subject doesn't match this class.">⚠ wrong subject</span>
+          <?php endif; ?>
+        </td>
         <td><?= htmlspecialchars($slot['ClassroomName']) ?></td>
         <td>
           <form method="POST" class="inline" onsubmit="return confirm('Remove this class from the schedule?');">
@@ -196,6 +234,37 @@ while ($row = mysqli_fetch_assoc($slotsResult)) {
     </table>
   <?php endforeach; ?>
 </div>
+
+<script>
+// Progressive enhancement: once a subject is picked, hide teachers who
+// aren't assigned to it (a teacher with no subject assigned stays visible
+// for every subject). The server still enforces this even with JS off.
+(function () {
+  var subjectSelect = document.getElementById('subject-select');
+  var teacherSelect = document.getElementById('teacher-select');
+  if (!subjectSelect || !teacherSelect) return;
+
+  function applyFilter() {
+    var subjectID = subjectSelect.value;
+    var options = teacherSelect.querySelectorAll('option[data-subject]');
+    var currentStillValid = false;
+
+    options.forEach(function (opt) {
+      var subj = opt.getAttribute('data-subject');
+      var show = !subjectID || subj === '' || subj === subjectID;
+      opt.hidden = !show;
+      if (opt.selected && show) currentStillValid = true;
+    });
+
+    if (!currentStillValid) {
+      teacherSelect.value = '';
+    }
+  }
+
+  subjectSelect.addEventListener('change', applyFilter);
+  applyFilter();
+})();
+</script>
 
 </body>
 </html>

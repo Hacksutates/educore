@@ -230,7 +230,6 @@ function generateAIComment() {
 
 <div class="footer">
 <a href="main.html">← Back to Main</a>
-<a href="timetables.php">Generate Schedule</a>
 </div>
 </div>
 </body>

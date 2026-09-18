@@ -97,7 +97,7 @@ if ($teacherID <= 0) {
     }
 
     if (!$timetableRows && !$extracurricularRows) {
-        $scheduleNotice = 'You are not on any schedule yet. Once a supervisor puts you '
+        $scheduleNotice = 'You are not on any schedule yet. Once an admin puts you '
                         . 'on a class and publishes that schedule, or you are assigned to '
                         . 'teach a lesson, it appears here.';
     }

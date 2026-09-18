@@ -138,6 +138,58 @@ function tt_normalise_times(array $times): array
 }
 
 /**
+ * Whether `teachers.SubjectID` exists yet (added by
+ * sql/02_cleanup_and_teacher_subjects.sql). Older installs that haven't run
+ * that migration don't have it, so every caller checks this before relying
+ * on the column.
+ */
+function tt_has_teacher_subject_column($connect): bool
+{
+    static $has = null;
+    if ($has !== null) {
+        return $has;
+    }
+    $res = tt_query($connect, "SHOW COLUMNS FROM teachers LIKE 'SubjectID'");
+    $has = (bool) ($res && mysqli_num_rows($res) > 0);
+    return $has;
+}
+
+/**
+ * Each teacher's assigned subject, where set. A teacher with no assigned
+ * subject (NULL, or the column doesn't exist yet) is treated as a
+ * generalist who can be booked for anything — only teachers who *do* have
+ * an assigned subject are restricted to it.
+ * Returns [TeacherID => SubjectID], omitting teachers with no assignment.
+ */
+function tt_teacher_subject_map($connect): array
+{
+    $map = [];
+    if (!tt_has_teacher_subject_column($connect)) {
+        return $map;
+    }
+    $res = tt_query($connect, "SELECT TeacherID, SubjectID FROM teachers WHERE SubjectID IS NOT NULL");
+    if ($res) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $map[(int) $row['TeacherID']] = (int) $row['SubjectID'];
+        }
+    }
+    return $map;
+}
+
+/**
+ * Narrow a list of teacher IDs down to the ones allowed to teach a given
+ * subject: teachers assigned to that subject, plus any generalist teacher
+ * who has no assigned subject at all. This is the single place that
+ * enforces "a teacher only teaches their assigned subject".
+ */
+function tt_teachers_eligible_for_subject(array $teacherSubjectMap, int $subjectID, array $allTeacherIDs): array
+{
+    return array_values(array_filter($allTeacherIDs, function ($tid) use ($teacherSubjectMap, $subjectID) {
+        return !isset($teacherSubjectMap[$tid]) || $teacherSubjectMap[$tid] === $subjectID;
+    }));
+}
+
+/**
  * Extracurricular lessons a student is enrolled in (clubs, electives —
  * the `enrollments` / `extracurricular_lessons` tables), in the same shape
  * the timetable rows use, plus a real LessonID so the card can link to

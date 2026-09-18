@@ -40,6 +40,11 @@ $allRooms = ttg_lookup($connect,
     "SELECT ClassroomID, ClassroomName FROM classrooms ORDER BY ClassroomName",
     'ClassroomID', 'ClassroomName');
 
+// Which teacher teaches which subject, so the generator (and the "Teacher"
+// dropdown below) never assigns someone outside their own subject.
+$teacherSubjectMap    = tt_teacher_subject_map($connect);
+$teacherSubjectColumn = tt_has_teacher_subject_column($connect);
+
 // --- Defaults, so "Generate" works with zero configuration ------------
 $defaults = [
     'periods_per_day' => 6,
@@ -86,10 +91,16 @@ if (($_POST['action'] ?? '') === 'generate' && !$missing) {
             $count = 0;   // form not filled in for this subject
         }
         if ($count > 0) {
+            // Only teachers assigned to this subject (plus any generalist
+            // teacher with no subject assigned) are ever eligible — a
+            // teacher who is assigned to a *different* subject is never
+            // picked, even by "Any teacher".
+            $qualified = tt_teachers_eligible_for_subject($teacherSubjectMap, (int) $subjectID, array_keys($allTeachers));
+
             $teacherChoice = (int) ($postedTeachers[$subjectID] ?? 0);
-            $eligible = ($teacherChoice && isset($allTeachers[$teacherChoice]))
+            $eligible = ($teacherChoice && in_array($teacherChoice, $qualified, true))
                 ? [$teacherChoice]
-                : array_keys($allTeachers);
+                : $qualified;
 
             $demand[$subjectID] = [
                 'count'    => $count,
@@ -110,7 +121,7 @@ if (($_POST['action'] ?? '') === 'generate' && !$missing) {
             if ($count > 0) {
                 $demand[$subjectID] = [
                     'count'    => $count,
-                    'teachers' => array_keys($allTeachers),
+                    'teachers' => tt_teachers_eligible_for_subject($teacherSubjectMap, (int) $subjectID, array_keys($allTeachers)),
                     'name'     => $allSubjects[$subjectID],
                 ];
             }
@@ -255,11 +266,19 @@ if ($res) {
     <h3 class="muted-h">Subjects — lessons per week</h3>
     <p class="muted small">
       Leave every count at <?= $suggestedCount ?> for an even week, or set your own.
-      "Any teacher" lets the generator pick whoever is free.
+      "Any teacher" lets the generator pick whoever is free among teachers qualified for that subject.
     </p>
+    <?php if (!$teacherSubjectColumn): ?>
+      <p class="warn">
+        Teachers don't have an assigned subject yet, so the generator can't stop a teacher being
+        booked outside their subject. Run <code>sql/02_cleanup_and_teacher_subjects.sql</code> to fix this.
+      </p>
+    <?php endif; ?>
     <table class="tt-table">
       <tr><th>Subject</th><th>Lessons / week</th><th>Teacher</th></tr>
-      <?php foreach ($allSubjects as $sid => $sname): ?>
+      <?php foreach ($allSubjects as $sid => $sname):
+        $qualifiedIDs = tt_teachers_eligible_for_subject($teacherSubjectMap, (int) $sid, array_keys($allTeachers));
+      ?>
       <tr>
         <td><?= htmlspecialchars($sname) ?></td>
         <td>
@@ -269,10 +288,13 @@ if ($res) {
         <td>
           <select name="subject_teacher[<?= $sid ?>]">
             <option value="0">Any teacher</option>
-            <?php foreach ($allTeachers as $tid => $tname): ?>
-              <option value="<?= $tid ?>"><?= htmlspecialchars($tname) ?></option>
+            <?php foreach ($qualifiedIDs as $tid): ?>
+              <option value="<?= $tid ?>"><?= htmlspecialchars($allTeachers[$tid]) ?></option>
             <?php endforeach; ?>
           </select>
+          <?php if ($teacherSubjectColumn && !$qualifiedIDs): ?>
+            <p class="no-lessons">No teacher is assigned to this subject yet.</p>
+          <?php endif; ?>
         </td>
       </tr>
       <?php endforeach; ?>
