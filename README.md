@@ -163,6 +163,53 @@ They now show a short page telling you which migration to run.
 `timetable_common.php`, `timetable_builder.php`, `timetables.php`,
 `style6.css`, `style_timetable.css`
 
+## 4. New: teacher class attendance (by day, whole grade at once)
+
+A teacher can now mark attendance straight from their own timetable,
+instead of hand-picking a lesson ID and typing a student's name.
+
+- **`scheduleteacher.php`** → **Mark Attendance** opens `markattendance.php`.
+- Pick a date (defaults to today). The page shows every class *that
+  teacher personally teaches* on that date's weekday, pulled from their
+  timetable — subject, time, room, and which grade (timetable) it is.
+- Click a class to see the whole grade's roster — every student assigned
+  to that class's timetable — with a Present/Absent toggle per student
+  (defaults to Present, or whatever was last saved for that date).
+  "Mark all present" / "Mark all absent" speed up the common case.
+- **Save attendance** writes one row per student to the new
+  `class_attendance` table (`SlotID`, `StudentID`, `Date`, `Status`,
+  `TeacherID`); saving again for the same class/date overwrites the
+  previous marks, so mistakes are easy to fix.
+
+This is separate from the existing `attendance` table, which is only
+for extracurricular-club enrollments (`enrollments` /
+`extracurricular_lessons`) and still powers the supervisor's
+`attendancemanagement.php` reports — nothing there changed.
+
+### Install
+
+Run the extra migration (needs `timetable_slots` / `timetable_assignments`
+from `01_schedule_generator.sql` already in place):
+
+```
+mysql -u student1 -p automated_system < sql/03_class_attendance.sql
+```
+
+### Files added
+
+- `sql/03_class_attendance.sql` — the `class_attendance` table
+- `attendance_lib.php` — read/write helpers for it
+
+### Files changed
+
+- `mark.php` — now the attendance controller (date → day's classes →
+  roster → save), reading from the timetable instead of a hardcoded
+  lesson dropdown
+- `markattendance.php` — new view: date picker, class-of-the-day cards,
+  roster table with Present/Absent pills
+- `style6.css` — styles for the date picker, class cards, roster table
+  and attendance pills (mobile-responsive, matching the rest of the site)
+
 ## To get running
 
 1. `mysql -u student1 -p automated_system < sql/01_schedule_generator.sql`

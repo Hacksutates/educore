@@ -1,136 +1,197 @@
 <?php
-session_start();
+/**
+ * Teacher attendance controller.
+ *
+ * Two independent attendance features share this one page, switched
+ * with a tab:
+ *   - "class"  : a teacher's normal timetable subjects (Math, Physics...)
+ *                backed by timetable_slots / class_attendance.
+ *   - "extra"  : additional subjects — the clubs a teacher runs
+ *                (Robotics, Dance...) backed by lessonschedule /
+ *                extracurricular_lessons / enrollments / attendance.
+ *
+ * Output contract used by markattendance.php:
+ *   $days, $selectedDate, $selectedDay, $isSchoolDay, $error, $notice,
+ *   $attendanceSuccess, $tab
+ *
+ *   Class tab:  $allSlots, $daySlots, $markedSlotIDs,
+ *               $selectedSlot, $rosterSlot, $roster, $attendanceMap
+ *   Extra tab:  $allExtraSlots, $dayExtraSlots, $markedLessonIDs,
+ *               $selectedLesson, $rosterLesson, $extraRoster, $extraAttendanceMap
+ *
+ * Flow (both tabs):
+ *   1. Teacher picks a calendar date (defaults to today) and a tab.
+ *   2. The page shows every class/club *that teacher personally runs*
+ *      that falls on that date's weekday.
+ *   3. Picking one of those shows the roster so the teacher can mark
+ *      each student Present/Absent and save it.
+ */
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 include 'connection.php';
+include_once 'schedule_lib.php';
+include_once 'attendance_lib.php';
 
-$teacherID = $_SESSION['TeacherID'];
-$enrollSuccess = $_SESSION['enrollSuccess'] ?? '';
+$teacherID = (int) ($_SESSION['TeacherID'] ?? 0);
+$days      = tt_days();
 
-unset($_SESSION['enrollSuccess']);
+$attendanceSuccess = $_SESSION['attendanceSuccess'] ?? '';
+unset($_SESSION['attendanceSuccess']);
 
+$attendanceReady = tt_class_attendance_ready($connect);
 
-$queryMark = null;
-$date = null;
-$idlesson = null;
+// --- Which tab is the teacher on? ---------------------------------------
+$tab = $_POST['tab'] ?? $_GET['tab'] ?? 'class';
+$tab = ($tab === 'extra') ? 'extra' : 'class';
 
-if (
-    isset($_POST['lessonsearch']) &&
-    isset($_POST['lesson_id']) &&
-    !empty($_POST['lesson_id']) &&
-    isset($_POST['datemark']) &&
-    !empty($_POST['datemark'])
-) {
-    $idlesson = $_POST['lesson_id'];
-    $date     = $_POST['datemark'];
-    $enrollmentID = $_POST['enrollmentID'];
+// --- Which date is the teacher looking at? -----------------------------
+$selectedDate = $_POST['attendance_date'] ?? $_GET['date'] ?? '';
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate) || !strtotime($selectedDate)) {
+    $selectedDate = date('Y-m-d');
+}
+$selectedDay = date('l', strtotime($selectedDate));
+$isSchoolDay = in_array($selectedDay, $days, true);
 
-    $queryMark = mysqli_query(
-        $connect,
-        "SELECT
-            extracurricular_lessons.LessonName,
-            students.StudentName,
-            students.StudentID,
-            enrollments.EnrollmentID
-         FROM enrollments
-         JOIN students
-            ON enrollments.StudentID = students.StudentID
-         JOIN extracurricular_lessons
-            ON enrollments.LessonID = extracurricular_lessons.LessonID
-         WHERE enrollments.LessonID = '$idlesson'"
-    );
-    $arr_for_sort = [];
-    while ($data1 = mysqli_fetch_assoc($queryMark)) {
-      $arr_for_sort[] = $data1;
-    }
-    $temp = null;
-    for ($i = 0; $i<count($arr_for_sort)-1; $i++) {
-      for ($j = 0; $j < count($arr_for_sort) - $i - 1; $j++) {
-       if ($arr_for_sort[$j]['StudentName'] > $arr_for_sort[$j+1]['StudentName']) {
-          $temp = $arr_for_sort[$j];
-          $arr_for_sort[$j] = $arr_for_sort[$j+1];
-          $arr_for_sort[$j +1] = $temp;
+// --- Which class (slot) is selected, if any? ---------------------------
+$selectedSlot = 0;
+if (isset($_POST['slot_id'])) {
+    $selectedSlot = (int) $_POST['slot_id'];
+} elseif (isset($_GET['slot'])) {
+    $selectedSlot = (int) $_GET['slot'];
+}
+
+// --- Which club (lesson) is selected, if any? ---------------------------
+$selectedLesson = 0;
+if (isset($_POST['lesson_id'])) {
+    $selectedLesson = (int) $_POST['lesson_id'];
+} elseif (isset($_GET['lesson'])) {
+    $selectedLesson = (int) $_GET['lesson'];
+}
+
+$allSlots      = [];
+$daySlots      = [];
+$markedSlotIDs = [];
+$rosterSlot    = null;
+$roster        = [];
+$attendanceMap = [];
+
+$allExtraSlots     = [];
+$dayExtraSlots     = [];
+$markedLessonIDs   = [];
+$rosterLesson      = null;
+$extraRoster       = [];
+$extraAttendanceMap = [];
+
+$error  = '';
+$notice = '';
+
+if ($teacherID <= 0) {
+    $error = 'Please log in again to mark attendance.';
+} elseif (!$attendanceReady) {
+    $error = 'Attendance storage has not been set up yet. Ask an admin to run sql/03_class_attendance.sql.';
+} else {
+    // ----- Regular classes (timetable) -----
+    $allSlots = tt_teacher_all_slots($connect, $teacherID);
+
+    if ($allSlots) {
+        $markedSlotIDs = tt_marked_slot_ids($connect, $selectedDate, array_column($allSlots, 'SlotID'));
+
+        if ($isSchoolDay) {
+            foreach ($allSlots as $s) {
+                if ($s['DayOfWeek'] === $selectedDay) {
+                    $daySlots[] = $s;
+                }
+            }
         }
-      }
-    }
-    $result = $arr_for_sort;
-    if (isset($_POST['studentname']) && !empty($_POST['studentname'])) {
 
-    $searchName = $_POST['studentname'];
-    $left = 0;
-    $right = count($arr_for_sort)-1;
-    $indexFind = -1;
-    while ($left <= $right) {
-      $mid = floor(($left + $right)/2);
-      if ($arr_for_sort[$mid]['StudentName'] == $searchName) {
-        $indexFind = $mid;
-        break;
-      }
-      if ($arr_for_sort[$mid]['StudentName'] < $searchName) {
-        $left = $mid + 1;
-      }
-      else {
-        $right = $mid - 1;
-      }
-    }
-      if ($indexFind != -1){
-        $result = [$arr_for_sort[$indexFind]];
-      }
-      else {
-        $result = [];
-      }
-    }
+        if ($selectedSlot > 0) {
+            foreach ($allSlots as $s) {
+                if ((int) $s['SlotID'] === $selectedSlot) {
+                    $rosterSlot = $s;
+                    break;
+                }
+            }
+            if ($rosterSlot) {
+                $roster        = tt_timetable_students($connect, (int) $rosterSlot['TimetableID']);
+                $attendanceMap = tt_fetch_attendance_map($connect, $selectedSlot, $selectedDate);
+            } else {
+                $error        = 'That class could not be found on your schedule.';
+                $selectedSlot = 0;
+            }
+        }
     }
 
-    if (
-        isset($_POST['lessonsearch']) &&
-        isset($_POST['lesson_id']) &&
-        !empty($_POST['lesson_id']) &&
-        isset($_POST['datemark']) &&
-        !empty($_POST['datemark'])
-    ) {
+    // ----- Additional subjects (clubs) -----
+    $allExtraSlots = tt_teacher_extra_slots($connect, $teacherID);
 
-          $idlesson = $_POST['lesson_id'];
-          $date     = $_POST['datemark'];
-          $enrollmentID = $_POST['enrollmentID'];
-          $studentname = $_POST['studentname'];
+    if ($allExtraSlots) {
+        $markedLessonIDs = tt_extra_marked_lesson_ids($connect, $selectedDate, array_column($allExtraSlots, 'LessonID'));
 
+        if ($isSchoolDay) {
+            foreach ($allExtraSlots as $s) {
+                if ($s['DayOfWeek'] === $selectedDay) {
+                    $dayExtraSlots[] = $s;
+                }
+            }
+        }
 
-
-if (isset($_POST['save_attendance'])) {
-
-    $lessonID = $_POST['lesson_id'];
-    $date     = $_POST['datemark'];
-
-    $attendance = $_POST['attendance'] ?? [];
-
-    $all = mysqli_query($connect, "
-        SELECT EnrollmentID
-        FROM enrollments
-        WHERE LessonID = '$lessonID'
-    ");
-
-    while ($row = mysqli_fetch_assoc($all)) {
-
-        $enrollmentID = $row['EnrollmentID'];
-
-        if (isset($attendance[$enrollmentID])) {
-      $status = 'Present';
-  } else {
-      $status = 'Absent';
-  }
-
-      $querySubmit =  mysqli_query($connect, "
-            INSERT INTO attendance (EnrollmentID, Date, Status)
-            VALUES ('$enrollmentID', '$date', '$status')
-            ON DUPLICATE KEY UPDATE Status = '$status'
-        ");
+        if ($selectedLesson > 0) {
+            $rosterLesson = tt_extra_lesson($connect, $selectedLesson, $teacherID);
+            if ($rosterLesson) {
+                $extraRoster        = tt_extra_lesson_students($connect, $selectedLesson);
+                $extraAttendanceMap = tt_extra_attendance_map($connect, $selectedLesson, $selectedDate);
+            } else {
+                if ($tab === 'extra') {
+                    $error = 'That additional subject could not be found on your schedule.';
+                }
+                $selectedLesson = 0;
+            }
+        }
     }
-    if ($querySubmit) {
-      $_SESSION['enrollSuccess'] =
-           "You've successfully submitted the attendance!";
 
-       header("Location: markattendance.php");
-       exit;
-   }
-} }
+    if (!$allSlots && !$allExtraSlots) {
+        $notice = 'You are not on any schedule yet. Once an admin assigns and '
+                . 'publishes your timetable or clubs, they will appear here for attendance.';
+    }
+}
 
-?>
+// --- Save: regular class ---------------------------------------------------
+if ($teacherID > 0 && $attendanceReady && $rosterSlot && isset($_POST['save_attendance'])) {
+    $posted          = $_POST['status'] ?? [];
+    $statusByStudent = [];
+
+    foreach ($roster as $st) {
+        $sid                     = (int) $st['StudentID'];
+        $statusByStudent[$sid]   = (($posted[$sid] ?? '') === 'Absent') ? 'Absent' : 'Present';
+    }
+
+    tt_save_class_attendance($connect, $selectedSlot, (int) $rosterSlot['TimetableID'], $teacherID, $selectedDate, $statusByStudent);
+
+    $count = count($roster);
+    $_SESSION['attendanceSuccess'] = 'Attendance saved for ' . $rosterSlot['SubjectName'] . ' on '
+        . date('j M Y', strtotime($selectedDate)) . ' — ' . $count . ' student' . ($count === 1 ? '' : 's') . '.';
+
+    header('Location: markattendance.php?tab=class&date=' . urlencode($selectedDate) . '&slot=' . $selectedSlot);
+    exit;
+}
+
+// --- Save: additional subject ----------------------------------------------
+if ($teacherID > 0 && $attendanceReady && $rosterLesson && isset($_POST['save_extra_attendance'])) {
+    $posted             = $_POST['status'] ?? [];
+    $statusByEnrollment = [];
+
+    foreach ($extraRoster as $st) {
+        $eid                        = (int) $st['EnrollmentID'];
+        $statusByEnrollment[$eid]   = (($posted[$eid] ?? '') === 'Absent') ? 'Absent' : 'Present';
+    }
+
+    tt_save_extra_attendance($connect, $selectedLesson, $selectedDate, $statusByEnrollment);
+
+    $count = count($extraRoster);
+    $_SESSION['attendanceSuccess'] = 'Attendance saved for ' . $rosterLesson['SubjectName'] . ' on '
+        . date('j M Y', strtotime($selectedDate)) . ' — ' . $count . ' student' . ($count === 1 ? '' : 's') . '.';
+
+    header('Location: markattendance.php?tab=extra&date=' . urlencode($selectedDate) . '&lesson=' . $selectedLesson);
+    exit;
+}
